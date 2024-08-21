@@ -1,45 +1,58 @@
 const {db} = require('../connection');
 const axios = require('axios');
 
+
+
+
 // Storing all Meta Data
 async function handleMetaData(req, res){
-    // const {pageId, metaData}   = req.body;
-    const data   = req.body;
-    if (!Array.isArray(data)) {
-        return res.status(400).json({ message: 'Invalid data format. Expected an array of objects.' });
+    //validation
+
+    let flowName = req.body.flow_name;
+    const pagesArray   = req.body.pages;
+
+    let [flowId] = await db.query('INSERT INTO flows (flow_name) VALUES (?)', [flowName]);
+    flowId = flowId.insertId;
+    let promises = [];
+    for(let page of pagesArray) {
+        const {page_id, meta_data, order_id} = page;
+        promises.push(db.query('INSERT INTO pages (page_id, meta_data, order_id, flow_id) VALUES (?, ?, ?, ?)', [page_id, JSON.stringify(meta_data), order_id, flowId]));
     }
-    // console.log(req.body);
-    const promises = data.map(async (item) =>{
-        const {pageId, metaData, orderId} = item;
-
-        if(!metaData){
-            return res.status(400).json({ message: ' metadata is required!' });
-        }
-    
-        if (!pageId) {
-            return res.status(400).json({ message: 'PageId  is required!' });
-        }
-
-        const [result] = await db.query('INSERT INTO information (pageId, metaData, orderId) VALUES (?, ?, ?)', [pageId, JSON.stringify(metaData), orderId]);
-        return result.insertId;
-        // return res.status(200).json({ message: 'Data saved successfully!', id: result.insertId });
-        
-    });
 
     const insertIds = await Promise.all(promises);
-    return res.status(200).json({ message: 'Data saved successfully!', ids: insertIds });
+    return res.status(200).json({ message: 'Data saved successfully!'});
+}
 
+// Sending single record/row form the database 
+async function handleGetFlows(req, res){
+    const [flows] = await db.query('SELECT * FROM flows');
+    return res.json(flows);
+    
 }
 
 // Sending single record/row form the database 
 async function handleGetMetaData(req, res){
-    // const [metadata] = await db.query('SELECT * FROM information');
-    const [metadata] = await db.query('SELECT * FROM information WHERE orderId = (SELECT MIN(orderId) FROM information)');
-    const orderNum = metadata[0];
-    const num = orderNum.orderId+1;
-    // console.log(num);
-    return res.json({metadata, nextOrderId:num});
-    
+    let token = null;
+    let whereClause = "(SELECT MIN(orderId) FROM pages)";
+    let queryValues = [];
+    if(req.header.X_PAGE_TOKEN) {
+        token = req.header.X_PAGE_TOKEN.toString("base64");
+        whereClause = "?";
+        queryValues.push(token.next_order_id);
+    }
+
+    queryValues.push(req.params.flow_id);
+    const data = await db.query(`SELECT * FROM pages WHERE order_id = ${whereClause} AND flow_id = ? LIMIT 1`, queryValues);
+
+    //verify if next page exists
+    token = null;
+    const orderId = await db.query(`SELECT orderId FROM pages WHERE orderId = ? AND flowId = ? LIMIT 1`, [data.orderId+1, flowId]);
+    if(orderId) {
+        token = {next_order_id: data.orderId}
+        token = Buffer.from(token).toString('base64');
+    }
+
+    return res.json({metadata, token});
 }
 
 
@@ -91,4 +104,4 @@ async function handleFetchApiData(rows) {
     );
 };
 
-module.exports = {handleMetaData, handleGetMetaData, handleGetApiData};
+module.exports = {handleMetaData, handleGetMetaData, handleGetApiData, handleGetFlows};
