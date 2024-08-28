@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {handleMetaData, handleGetMetaData, handleGetApiData, handleGetFlows} = require('../controllers/webController');
+const {handleMetaData, handleGetMetaData, handleGetFlows} = require('../controllers/webController');
 
 
 // store data
@@ -14,6 +14,6 @@ router.get('/flows', handleGetFlows);
 router.get('/data', handleGetMetaData);
 
 //Get and Send Api Data 
-router.get('/apiData/:pageId', handleGetApiData);
+// router.get('/apiData/:orderid?', handleGetApiData);
 
 module.exports = router;
