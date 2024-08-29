@@ -1,6 +1,7 @@
 const express = require('express');
 const {db} = require('../connection');
 const axios = require('axios');
+const uuid = require('uuid');
 
 // Storing all Meta Data
 async function handleMetaData(req, res){
@@ -75,6 +76,8 @@ async function handleGetMetaData(req, res){
         
     }
     
+    
+    
     if (data.meta_data) {
         for (const item of data.meta_data){
             if(item.api){
@@ -98,7 +101,7 @@ async function handleGetMetaData(req, res){
         //     const apiResponse = [];
             
         //     for(const apiUrl of apiUrls){
-        //         const response = await axios.get(apiUrl);
+        //         const response = await axios.get(apiUrl); 
         //         apiResponse.push(response.data);
         //     }
 
@@ -129,8 +132,44 @@ async function handleGetMetaData(req, res){
     }
     
 
-    return res.json({data, token});
+    if(data.order_id === 1){
+        var request_id = uuid.v4(); 
+        return res.json({data, token, request_id});
+     }else{
+        return res.json({data, token});
+     }
+
+    
 }
+
+async function handleFeedbackData(req,res){
+    const request_id = req.headers.request_id;
+    const {page_id, result} = req.body;
+    if(!page_id || !result || !request_id){
+        return res.status(400).json({ msg: "All fields are required" });
+    }
+
+    const [existingData] = await db.query('SELECT * FROM feedbacks WHERE page_id = ? AND request_id = ?', [page_id, request_id]);
+
+    if(existingData.length > 0){
+        await db.query('Update feedbacks SET result = ? where page_id = ? AND request_id = ?', [JSON.stringify(result), page_id, request_id]);
+        return res.json({msg: "Feedback updated successfully"})
+    }else{
+        
+        const dataArray = await db.query('INSERT INTO feedbacks (result, page_id, request_id) VALUES (?, ?, ?)', [JSON.stringify(result), page_id, request_id]);
+        return res.json({ msg: "Page saved Successfully", id: dataArray.insertId });
+    }
+}
+
+// async function handleGetMobileData(req, res){
+
+// }
+
+
+
+
+
+
 
 
 // Send api data to mobile by pageId
@@ -154,4 +193,4 @@ async function handleGetMetaData(req, res){
     // res.status(200).json(resolveApiData);
 // }
 
-module.exports = {handleMetaData, handleGetMetaData, handleGetFlows};
+module.exports = {handleMetaData, handleGetMetaData, handleGetFlows, handleFeedbackData};
