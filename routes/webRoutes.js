@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {handleMetaData, handleGetMetaData, handleGetFlows, handleFeedbackData} = require('../controllers/webController');
+const {handleMetaData, handleGetMetaData, handleGetFlows, handleFeedbackData, handleGetMobileData} = require('../controllers/webController');
 
 
 // Store Web Data
@@ -15,6 +15,10 @@ router.get('/data', handleGetMetaData);
 
 // Store Mobile Data
 router.post('/feedback', handleFeedbackData);
+
+// Get stored feedback data
+router.get('/getfeedback', handleGetMobileData);
+
 
 
 //Get and Send Api Data 

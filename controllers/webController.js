@@ -13,8 +13,8 @@ async function handleMetaData(req, res){
     flowId = flowId.insertId;
     let promises = [];
     for(let page of pagesArray) {
-        const {page_id, meta_data, order_id} = page;
-        promises.push(db.query('INSERT INTO pages (page_id, meta_data, order_id, flow_id) VALUES (?, ?, ?, ?)', [page_id, JSON.stringify(meta_data), order_id, flowId]));
+        const {step_type, meta_data, order_id} = page;
+        promises.push(db.query('INSERT INTO pages (step_type, meta_data, order_id, flow_id) VALUES (?, ?, ?, ?)', [step_type, JSON.stringify(meta_data), order_id, flowId]));
     }
     const insertIds = await Promise.all(promises);
     return res.status(200).json({ message: 'Data saved successfully!'});
@@ -81,53 +81,34 @@ async function handleGetMetaData(req, res){
     if (data.meta_data) {
         for (const item of data.meta_data){
             if(item.api){
-                const apiUrls = Object.values(item.api)
+                // console.log("item spi", item.api)
+                const apiUrls = item.api.Url
+                if(Array.isArray(apiUrls)){
+                    return res.json({msg: "Url key has multiple values only single is required"});
+                }
                 // console.log(apiUrls);
                 const apiResponse = [];
-
-                // Fetching data for each api 
-                for (const apiUrl of apiUrls){
-                    const response = await axios.get(apiUrl);
+                // console.log("🚀 ~ handleGetMetaData ~ apiResponse:", apiResponse)
+                
+                    const response = await axios.get(apiUrls);
                     apiResponse.push(response.data);
-                }
+                // Fetching data for each api 
+                // for (const apiUrl of apiUrls){
+                //     const response = await axios.get(apiUrl);
+                //     apiResponse.push(response.data);
+
+                // }
+
                 // console.log("🚀 ~ handleGetMetaData ~ apiResponse:", apiResponse)
                 // console.log("🚀 ~ handleGetMetaData ~ item:", item)
                 item.apiResponse = apiResponse.flat();
                 
             }
+            // data.meta_data = item;
+            
         }
-        // if(Array.isArray(data.meta_data.api)){
-        //     const apiUrls = data.meta_data.api;
-        //     const apiResponse = [];
-            
-        //     for(const apiUrl of apiUrls){
-        //         const response = await axios.get(apiUrl); 
-        //         apiResponse.push(response.data);
-        //     }
-
-        //     data.meta_data.dropdown = apiResponse;
-
-            
-        // }
-
-
-
-        // const apiResponse = await Promise.all(
-        //     apiUrls.map(async (apiUrl) => {
-        //         try {
-                    
-        //             const response = await axios.get(apiUrl);
-        //             data.meta_data.dropdown = response.data;
-                    
-        //         } catch (apiError) {
-        //             console.error("API call error:", apiError);
-        //             return res.status(500).json({ error: "Error fetching data from API" });
-        //         }
-        //     })
-        // ); 
-        // const apiUrl = data.meta_data.api;
-        // console.log("🚀 ~ handleGetMetaData ~ apiUrl:", apiUrl)
-        //&& Object.hasOwn(data.meta_data, 'api')
+        
+        
         
     }
     
@@ -143,33 +124,34 @@ async function handleGetMetaData(req, res){
 }
 
 async function handleFeedbackData(req,res){
-    const request_id = req.headers.request_id;
-    const {page_id, result} = req.body;
-    if(!page_id || !result || !request_id){
-        return res.status(400).json({ msg: "All fields are required" });
-    }
+    try{
+        const request_id = req.headers.request_id;
+        const {page_id, result} = req.body;
+        if(!page_id || !result || !request_id){
+            return res.status(400).json({ msg: "All fields are required" });
+        }
 
-    const [existingData] = await db.query('SELECT * FROM feedbacks WHERE page_id = ? AND request_id = ?', [page_id, request_id]);
+        const [existingData] = await db.query('SELECT * FROM feedbacks WHERE page_id = ? AND request_id = ?', [page_id, request_id]);
 
-    if(existingData.length > 0){
-        await db.query('Update feedbacks SET result = ? where page_id = ? AND request_id = ?', [JSON.stringify(result), page_id, request_id]);
-        return res.json({msg: "Feedback updated successfully"})
-    }else{
+        if(existingData.length > 0){
+            await db.query('Update feedbacks SET result = ? where page_id = ? AND request_id = ?', [JSON.stringify(result), page_id, request_id]);
+            return res.json({msg: "Feedback updated successfully"})
+        }else{
         
-        const dataArray = await db.query('INSERT INTO feedbacks (result, page_id, request_id) VALUES (?, ?, ?)', [JSON.stringify(result), page_id, request_id]);
-        return res.json({ msg: "Page saved Successfully", id: dataArray.insertId });
-    }
+            const [dataArray] = await db.query('INSERT INTO feedbacks (result, page_id, request_id) VALUES (?, ?, ?)', [JSON.stringify(result), page_id, request_id]);
+            return res.json({ msg: "Page saved Successfully", id: dataArray.insertId });
+           }
+        }catch{
+            return res.json({ msg: "Error from mobile frontend"});
+        }
+    
 }
 
-// async function handleGetMobileData(req, res){
-
-// }
-
-
-
-
-
-
+async function handleGetMobileData(req, res){
+    const {request_id} = req.headers;
+    const [listStoredFeedback] = await db.query('SELECT * FROM feedbacks WHERE request_id = ?',  [request_id]);
+    return res.json(listStoredFeedback);
+}
 
 
 // Send api data to mobile by pageId
@@ -193,4 +175,4 @@ async function handleFeedbackData(req,res){
     // res.status(200).json(resolveApiData);
 // }
 
-module.exports = {handleMetaData, handleGetMetaData, handleGetFlows, handleFeedbackData};
+module.exports = {handleMetaData, handleGetMetaData, handleGetFlows, handleFeedbackData, handleGetMobileData};
