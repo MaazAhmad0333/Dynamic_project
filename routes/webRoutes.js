@@ -20,7 +20,7 @@ router.get('/data', handleGetMetaData);
 router.post('/feedback', handleFeedbackData);
 
 // Get stored feedback data
-router.get('/getfeedback', handleGetMobileData);
+// router.get('/getfeedback', handleGetMobileData);
 
 
 
