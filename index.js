@@ -14,6 +14,4 @@ app.use(express.json());
 app.use('/api/web', webRouter);
 
 
-
-
 app.listen(8000, () => console.log("Server Started"));

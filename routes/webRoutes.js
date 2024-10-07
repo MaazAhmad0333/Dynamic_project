@@ -19,12 +19,5 @@ router.get('/data', handleGetMetaData);
 // Store Mobile Data
 router.post('/feedback', handleFeedbackData);
 
-// Get stored feedback data
-// router.get('/getfeedback', handleGetMobileData);
-
-
-
-//Get and Send Api Data 
-// router.get('/apiData/:orderid?', handleGetApiData);
 
 module.exports = router;
