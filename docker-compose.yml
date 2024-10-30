@@ -1,0 +1,53 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306 # Use the internal port
+      DB_USER: root
+      DB_PASSWORD: 11223344
+      DB_NAME: dynamic_flow_generation
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - my-network # Attach to the custom network
+  db:
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3307:3306" # Map external port 3307 to internal port 3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 11223344
+      MYSQL_DATABASE: dynamic_flow_generation
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./databaseSchema.sql:/docker-entrypoint-initdb.d/databaseSchema.sql
+    networks:
+      - my-network # Attach to the custom network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p11223344",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+volumes:
+  db-data:
+networks:
+  my-network:
+    driver: bridge

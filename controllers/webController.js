@@ -37,7 +37,7 @@ async function handleMetaData(req, res){
 
     }catch(error){
       console.log("🚀 ~ handleMetaData ~ error:", error)
-      return res.status(200).json({ message: '! Data not Saved '});
+      return res.status(200).json(error);
     }
 }
 
@@ -129,6 +129,8 @@ async function handleGetMetaData(req, res){
         buffer = Buffer.from(JSON.stringify(token), 'utf-8');
         token = buffer.toString('base64');    
     }
+
+//========================================= Api Configuration Part ============================================================== //
 
     let apidetails = await dbprovider.getApiDetails(data.flow_id);
     

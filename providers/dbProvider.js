@@ -10,7 +10,7 @@ async function saveFlowData(flowName) {
 
 // Storing New variables
 async function saveVariableData(variable, flowId){
-    const [variableIdResult] = await db.query('INSERT INTO flowVariables (variable, flow_id) VALUES (?,?)', [JSON.stringify(variable), flowId]);
+    const [variableIdResult] = await db.query('INSERT INTO flowvariables (variable, flow_id) VALUES (?,?)', [JSON.stringify(variable), flowId]);
     return variableIdResult;
     
 }
